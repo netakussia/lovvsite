@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Галерея воспоминаний 💕</title>
+  <meta name="description" content="Галерея фотографий и видео из нашей истории любви. Драгоценные моменты, запечатленные навсегда.">
+  <meta name="keywords" content="галерея, фото, видео, воспоминания, любовь, Коля, Ирина">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <script defer src="gallery.js"></script>
+</head>
+<body>
+  <button id="theme-toggle" title="Переключить тему" aria-label="Переключить тему">🌙</button>
+  
+  <!-- Скрытое навигационное меню -->
+  <nav id="hidden-nav" class="hidden-nav">
+    <button id="nav-toggle" class="nav-toggle" title="Меню навигации" aria-label="Меню навигации">☰</button>
+    <div id="nav-menu" class="nav-menu">
+      <a href="index.html" class="nav-link">🏠 Главная</a>
+      <a href="index.html#moments-timeline" class="nav-link">📅 История</a>
+      <a href="index.html#chat-section" class="nav-link">💬 Чат</a>
+      <a href="index.html#gift-section" class="nav-link">🎁 Подарок</a>
+      <a href="index.html#secret-section" class="nav-link">🔐 Секреты</a>
+      <a href="gallery.html" class="nav-link active">🖼️ Галерея</a>
+    </div>
+  </nav>
+
+  <!-- ЭКРАН ЗАГРУЗКИ -->
+  <div id="preloader">
+    <div class="loader-text" id="loaderText">Загрузка воспоминаний...</div>
+  </div>
+
+  <!-- ГЛАВНЫЙ ЭКРАН -->
+  <section id="hero" class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">🖼️ Галерея воспоминаний</h1>
+      <p class="hero-subtitle">Драгоценные моменты нашей любви</p>
+    </div>
+  </section>
+
+  <!-- ГАЛЕРЕЯ -->
+  <section id="gallery-section" class="gallery-section">
+    <div class="gallery-container" id="gallery-container">
+      <div class="loading" style="text-align: center; padding: 40px; color: #666;">
+        Загрузка галереи...
+      </div>
+    </div>
+  </section>
+
+  <!-- МУЗЫКАЛЬНЫЙ ПЛЕЕР -->
+  <div id="music-player" class="music-player">
+    <button id="music-toggle" class="music-toggle" title="Включить/выключить музыку">🎵</button>
+    <div id="music-info" class="music-info" style="display: none;">
+      <span id="music-title">Загрузка...</span>
+      <div class="music-controls">
+        <button id="music-prev" class="music-btn">⏮️</button>
+        <button id="music-play" class="music-btn">▶️</button>
+        <button id="music-next" class="music-btn">⏭️</button>
+        <input type="range" id="music-volume" min="0" max="1" step="0.1" value="0.5" class="music-volume">
+      </div>
+    </div>
+  </div>
+
+  <!-- АУДИО ЭЛЕМЕНТ -->
+  <audio id="background-music" preload="auto" loop>
+    <source src="" type="audio/mpeg">
+  </audio>
+
+  <!-- ПОЛНОЭКРАННЫЙ ПРОСМОТР -->
+  <div id="fullscreen-overlay" class="fullscreen-overlay" style="display: none;">
+    <button id="fullscreen-close" class="fullscreen-close">×</button>
+    <div id="fullscreen-content" class="fullscreen-content">
+      <!-- Контент будет загружен динамически -->
+    </div>
+  </div>
+
+  <!-- ФУТЕР -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <p class="footer-love">С любовью, Коля ❤️</p>
+      <p class="footer-message">Каждое фото — это история нашей любви</p>
+    </div>
+  </footer>
+</body>
+</html>

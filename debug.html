@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .loading { background: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>Диагностика API для сайта migrated-love-site</h1>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = '/api/site/migrated-love-site';
+        const results = document.getElementById('results');
+
+        function addResult(test, status, message) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `<strong>${test}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+
+        async function testAPI() {
+            // Тест 1: Настройки сайта
+            try {
+                addResult('Настройки сайта', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/settings`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Настройки сайта', 'success', `OK - ${JSON.stringify(data)}`);
+                } else {
+                    addResult('Настройки сайта', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Настройки сайта', 'error', `Ошибка: ${error.message}`);
+            }
+
+            // Тест 2: Сообщения чата
+            try {
+                addResult('Сообщения чата', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/chat-messages`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Сообщения чата', 'success', `OK - ${data.length} сообщений`);
+                } else {
+                    addResult('Сообщения чата', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Сообщения чата', 'error', `Ошибка: ${error.message}`);
+            }
+
+            // Тест 3: Посты таймлайна
+            try {
+                addResult('Посты таймлайна', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/posts`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Посты таймлайна', 'success', `OK - ${data.length} постов`);
+                } else {
+                    addResult('Посты таймлайна', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Посты таймлайна', 'error', `Ошибка: ${error.message}`);
+            }
+
+            // Тест 4: Секретные посты
+            try {
+                addResult('Секретные посты', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/secret-posts`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Секретные посты', 'success', `OK - ${data.length} секретов`);
+                } else {
+                    addResult('Секретные посты', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Секретные посты', 'error', `Ошибка: ${error.message}`);
+            }
+
+            // Тест 5: Настройки музыки
+            try {
+                addResult('Настройки музыки', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/music-settings`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Настройки музыки', 'success', `OK - ${data.length} настроек`);
+                } else {
+                    addResult('Настройки музыки', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Настройки музыки', 'error', `Ошибка: ${error.message}`);
+            }
+
+            // Тест 6: Временные сообщения
+            try {
+                addResult('Временные сообщения', 'loading', 'Загрузка...');
+                const response = await fetch(`${API_BASE_URL}/temporary-messages/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('Временные сообщения', 'success', `OK - ${data.title || 'Нет активных'}`);
+                } else {
+                    addResult('Временные сообщения', 'error', `Ошибка ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Временные сообщения', 'error', `Ошибка: ${error.message}`);
+            }
+        }
+
+        // Запускаем тесты при загрузке страницы
+        document.addEventListener('DOMContentLoaded', testAPI);
+    </script>
+</body>
+</html>
+

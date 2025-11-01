@@ -1,0 +1,200 @@
+#!/usr/bin/env node
+
+/**
+ * Скрипт миграции данных из одиночного сайта в мультитенантную платформу
+ * Использование: node migrate-to-multitenant.js
+ */
+
+const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+const path = require('path');
+
+// Пути к базам данных
+const OLD_DB_PATH = './database.sqlite';
+const NEW_DB_PATH = './database-multitenant.sqlite';
+const SCHEMA_PATH = './database-schema.sql';
+
+// Проверяем существование старой базы данных
+if (!fs.existsSync(OLD_DB_PATH)) {
+    console.error('❌ Старая база данных не найдена:', OLD_DB_PATH);
+    process.exit(1);
+}
+
+// Проверяем существование схемы
+if (!fs.existsSync(SCHEMA_PATH)) {
+    console.error('❌ Схема базы данных не найдена:', SCHEMA_PATH);
+    process.exit(1);
+}
+
+console.log('🚀 Начинаем миграцию данных...');
+
+// Создаем новую базу данных
+const newDb = new sqlite3.Database(NEW_DB_PATH);
+
+// Читаем и выполняем схему
+const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
+newDb.exec(schema, (err) => {
+    if (err) {
+        console.error('❌ Ошибка создания схемы:', err);
+        process.exit(1);
+    }
+    
+    console.log('✅ Схема базы данных создана');
+    
+    // Открываем старую базу данных
+    const oldDb = new sqlite3.Database(OLD_DB_PATH);
+    
+    // Создаем пользователя для мигрированного сайта
+    const defaultPassword = 'migrated123';
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
+    
+    newDb.run(
+        "INSERT INTO platform_users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)",
+        ['migrated_user', 'migrated@example.com', hashedPassword, 'Migrated User'],
+        function(err) {
+            if (err) {
+                console.error('❌ Ошибка создания пользователя:', err);
+                process.exit(1);
+            }
+            
+            const userId = this.lastID;
+            console.log('✅ Пользователь создан с ID:', userId);
+            
+            // Создаем сайт для мигрированных данных
+            newDb.run(
+                "INSERT INTO user_sites (user_id, site_name, site_slug, site_title, site_subtitle, template_type) VALUES (?, ?, ?, ?, ?, ?)",
+                [userId, 'Migrated Love Site', 'migrated-love-site', 'Добро пожаловать ❤️', 'Подарок только для тебя', 'love_site'],
+                function(err) {
+                    if (err) {
+                        console.error('❌ Ошибка создания сайта:', err);
+                        process.exit(1);
+                    }
+                    
+                    const siteId = this.lastID;
+                    console.log('✅ Сайт создан с ID:', siteId);
+                    
+                    // Мигрируем настройки сайта
+                    oldDb.all("SELECT key, value FROM site_settings", (err, settings) => {
+                        if (err) {
+                            console.error('❌ Ошибка чтения настроек:', err);
+                            return;
+                        }
+                        
+                        const stmt = newDb.prepare("INSERT INTO site_settings (site_id, setting_key, setting_value) VALUES (?, ?, ?)");
+                        settings.forEach(setting => {
+                            stmt.run(siteId, setting.key, setting.value);
+                        });
+                        stmt.finalize();
+                        console.log(`✅ Мигрировано ${settings.length} настроек`);
+                        
+                        // Мигрируем посты таймлайна
+                        oldDb.all("SELECT * FROM posts", (err, posts) => {
+                            if (err) {
+                                console.error('❌ Ошибка чтения постов:', err);
+                                return;
+                            }
+                            
+                            const stmt = newDb.prepare("INSERT INTO site_posts (site_id, title, date, image_url, content) VALUES (?, ?, ?, ?, ?)");
+                            posts.forEach(post => {
+                                stmt.run(siteId, post.title, post.date, post.image_url, post.content);
+                            });
+                            stmt.finalize();
+                            console.log(`✅ Мигрировано ${posts.length} постов`);
+                            
+                            // Мигрируем секретные посты
+                            oldDb.all("SELECT * FROM secret_posts", (err, secretPosts) => {
+                                if (err) {
+                                    console.error('❌ Ошибка чтения секретных постов:', err);
+                                    return;
+                                }
+                                
+                                const stmt = newDb.prepare("INSERT INTO site_secret_posts (site_id, title, content, password) VALUES (?, ?, ?, ?)");
+                                secretPosts.forEach(post => {
+                                    stmt.run(siteId, post.title, post.content, post.password);
+                                });
+                                stmt.finalize();
+                                console.log(`✅ Мигрировано ${secretPosts.length} секретных постов`);
+                                
+                                // Мигрируем галерею
+                                oldDb.all("SELECT * FROM gallery", (err, galleryItems) => {
+                                    if (err) {
+                                        console.error('❌ Ошибка чтения галереи:', err);
+                                        return;
+                                    }
+                                    
+                                    const stmt = newDb.prepare("INSERT INTO site_gallery (site_id, title, description, file_path, file_type, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?)");
+                                    galleryItems.forEach(item => {
+                                        stmt.run(siteId, item.title, item.description, item.file_path, item.file_type, item.thumbnail_path);
+                                    });
+                                    stmt.finalize();
+                                    console.log(`✅ Мигрировано ${galleryItems.length} элементов галереи`);
+                                    
+                                    // Мигрируем настройки музыки
+                                    oldDb.all("SELECT * FROM music_settings", (err, musicSettings) => {
+                                        if (err) {
+                                            console.error('❌ Ошибка чтения настроек музыки:', err);
+                                            return;
+                                        }
+                                        
+                                        const stmt = newDb.prepare("INSERT INTO site_music_settings (site_id, page, music_file, autoplay, loop, volume) VALUES (?, ?, ?, ?, ?, ?)");
+                                        musicSettings.forEach(setting => {
+                                            stmt.run(siteId, setting.page, setting.music_file, setting.autoplay, setting.loop, setting.volume);
+                                        });
+                                        stmt.finalize();
+                                        console.log(`✅ Мигрировано ${musicSettings.length} настроек музыки`);
+                                        
+                                        // Мигрируем временные сообщения
+                                        oldDb.all("SELECT * FROM temporary_messages", (err, tempMessages) => {
+                                            if (err) {
+                                                console.error('❌ Ошибка чтения временных сообщений:', err);
+                                                return;
+                                            }
+                                            
+                                            const stmt = newDb.prepare("INSERT INTO site_temporary_messages (site_id, title, content, show_from, duration_hours, is_active) VALUES (?, ?, ?, ?, ?, ?)");
+                                            tempMessages.forEach(msg => {
+                                                stmt.run(siteId, msg.title, msg.content, msg.show_from, msg.duration_hours, msg.is_active);
+                                            });
+                                            stmt.finalize();
+                                            console.log(`✅ Мигрировано ${tempMessages.length} временных сообщений`);
+                                            
+                                            // Мигрируем сообщения чата
+                                            oldDb.all("SELECT * FROM chat_messages", (err, chatMessages) => {
+                                                if (err) {
+                                                    console.error('❌ Ошибка чтения сообщений чата:', err);
+                                                    return;
+                                                }
+                                                
+                                                const stmt = newDb.prepare("INSERT INTO site_chat_messages (site_id, message, order_index) VALUES (?, ?, ?)");
+                                                chatMessages.forEach(msg => {
+                                                    stmt.run(siteId, msg.message, msg.order_index);
+                                                });
+                                                stmt.finalize();
+                                                console.log(`✅ Мигрировано ${chatMessages.length} сообщений чата`);
+                                                
+                                                // Закрываем соединения
+                                                oldDb.close();
+                                                newDb.close();
+                                                
+                                                console.log('\n🎉 Миграция завершена успешно!');
+                                                console.log('\n📋 Информация для входа:');
+                                                console.log('👤 Логин: migrated_user');
+                                                console.log('🔑 Пароль: migrated123');
+                                                console.log('🌐 URL сайта: /site/migrated-love-site');
+                                                console.log('\n📁 Новая база данных: database-multitenant.sqlite');
+                                                console.log('📁 Старая база данных сохранена: database.sqlite');
+                                                console.log('\n🚀 Для запуска мультитенантной версии используйте:');
+                                                console.log('   cp database-multitenant.sqlite database.sqlite');
+                                                console.log('   npm start');
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        }
+    );
+});

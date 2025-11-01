@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">Для тебя ❤️</title>
+  <meta name="description" content="История любви. Подарок для любимой, воспоминания, моменты, признания и счастье вместе.">
+  <meta name="keywords" content="любовь, история, отношения, подарок, воспоминания, счастье, вместе">
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <script defer src="/script.js"></script>
+</head>
+<body>
+  <button id="theme-toggle" title="Переключить тему" aria-label="Переключить тему">🌙</button>
+  
+  <!-- Скрытое навигационное меню -->
+  <nav id="hidden-nav" class="hidden-nav">
+    <button id="nav-toggle" class="nav-toggle" title="Меню навигации" aria-label="Меню навигации">☰</button>
+    <div id="nav-menu" class="nav-menu">
+      <a href="#hero" class="nav-link">🏠 Главная</a>
+      <a href="#moments-timeline" class="nav-link">📅 История</a>
+      <a href="#" class="nav-link" id="gallery-link">🖼️ Галерея</a>
+      <a href="#chat-section" class="nav-link">💬 Чат</a>
+      <a href="#gift-section" class="nav-link">🎁 Подарок</a>
+      <a href="#secret-section" class="nav-link">🔐 Секреты</a>
+    </div>
+  </nav>
+
+ <!-- ЭКРАН ЗАГРУЗКИ -->
+<div id="preloader">
+  <div class="loader-text" id="loaderText">Загрузка любви...</div>
+  <div class="skip-hint">Нажмите любую клавишу или кликните для пропуска</div>
+  <button id="skip-loading" style="margin-top: 20px; padding: 10px 20px; background: #764ba2; color: white; border: none; border-radius: 5px; cursor: pointer;">Пропустить загрузку</button>
+</div>
+
+  <!-- Главный экран / Приветствие -->
+  <header id="hero">
+    <h1 id="site-title">Добро пожаловать ❤️</h1>
+    <p id="site-subtitle">Подарок только для тебя))</p>
+  </header>
+<canvas id="hearts-canvas"></canvas>
+
+        <!-- ВРЕМЕННОЕ СООБЩЕНИЕ -->
+        <section id="temporary-message-section" class="temporary-message-section">
+          <div class="temporary-message-block">
+            <div class="temporary-message-content">
+              <h2 id="temporary-message-title" class="temporary-message-title">Ожидание сообщения...</h2>
+              <p id="temporary-message-text" class="temporary-message-text">Проверяем наличие временных сообщений...</p>
+            </div>
+          </div>
+        </section>
+
+  <!-- Счетчик дней -->
+  <section id="day-counter">
+    <div class="counter-container">
+      <h2>Мы вместе уже</h2>
+      <div class="counter-display">
+        <span id="days-count">0</span>
+        <span class="counter-label">дней</span>
+      </div>
+      <p class="counter-date" id="counter-date">С 6 января 2025</p>
+    </div>
+  </section>
+
+  <!-- Чат-симуляция -->
+  <section id="chat-section">
+    <div class="chat-container">
+      <h2>Наш чат 💬</h2>
+      <div class="chat-messages" id="chat-messages">
+        <div class="message loading">Загрузка сообщений...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Таймлайн моментов -->
+  <section id="moments-timeline">
+    <h2>Наша история 📅</h2>
+    <div class="timeline-container">
+      <div class="timeline" id="timeline">
+        <div class="timeline-item loading">Загрузка моментов...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Секция подарка -->
+  <section id="gift-section">
+    <h2>Подарок для тебя 🎁</h2>
+    <div class="gift-container">
+      <div class="gift-box" id="gift-box">
+        <div class="gift-ribbon"></div>
+        <div class="gift-content">
+          <h3>Сюрприз!</h3>
+          <p>Нажми на подарок, чтобы открыть</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Секретная секция -->
+  <section id="secret-section">
+    <h2>Секреты 🔐</h2>
+    <div class="secret-container">
+      <div class="secret-password-form">
+        <input type="password" id="secret-password" placeholder="Введите пароль для доступа к секретам">
+        <button id="secret-submit">Открыть секреты</button>
+      </div>
+      <div class="secret-content" id="secret-content" style="display: none;">
+        <div class="secret-posts" id="secret-posts">
+          <div class="loading">Загрузка секретов...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Музыкальный плеер -->
+  <div class="music-player" id="music-player">
+    <audio id="background-music" loop>
+      <source src="" type="audio/mpeg">
+      Ваш браузер не поддерживает аудио элемент.
+    </audio>
+    <div class="music-controls">
+      <button id="music-toggle" class="music-btn">🎵</button>
+      <div class="music-info">
+        <span id="music-title">Музыка</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Футер -->
+  <footer>
+    <p>Создано с любовью ❤️</p>
+  </footer>
+
+</body>
+</html>

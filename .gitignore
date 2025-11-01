@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Database
 database.sqlite
+database-backup.sqlite
 *.db
 
 # Environment variables

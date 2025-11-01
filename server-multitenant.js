@@ -16,6 +16,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files
+app.use('/css', express.static(path.join(__dirname)));
+app.use('/js', express.static(path.join(__dirname)));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/music', express.static(path.join(__dirname, 'music')));
+app.use('/favicon.ico', express.static(path.join(__dirname, 'favicon.ico')));
 app.use(express.static('.'));
 
 // Rate limiting
@@ -538,6 +545,323 @@ app.post('/api/site/:siteSlug/admin/posts', authenticateToken, validateSite, (re
     });
 });
 
+// Get all secret posts (admin only)
+app.get('/api/site/:siteSlug/admin/secret-posts', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  db.all("SELECT id, title, password, created_at, updated_at FROM site_secret_posts WHERE site_id = ? ORDER BY created_at DESC",
+    [req.site.id], (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json(rows);
+    });
+});
+
+// Update secret post
+app.put('/api/site/:siteSlug/admin/secret-posts/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+  const { title, content, password } = req.body;
+
+  if (!title || !content || !password) {
+    return res.status(400).json({ error: 'Title, content and password required' });
+  }
+
+  db.run(
+    "UPDATE site_secret_posts SET title = ?, content = ?, password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND site_id = ?",
+    [title, content, password, id, req.site.id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Secret post not found' });
+      }
+      res.json({ id, title, content, password });
+    }
+  );
+});
+
+// Delete secret post
+app.delete('/api/site/:siteSlug/admin/secret-posts/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+
+  db.run("DELETE FROM site_secret_posts WHERE id = ? AND site_id = ?", [id, req.site.id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Secret post not found' });
+    }
+    res.json({ message: 'Secret post deleted successfully' });
+  });
+});
+
+// Get all posts (admin only)
+app.get('/api/site/:siteSlug/admin/posts', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  db.all("SELECT * FROM site_posts WHERE site_id = ? ORDER BY date DESC", [req.site.id], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(rows);
+  });
+});
+
+// Update post
+app.put('/api/site/:siteSlug/admin/posts/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+  const { title, date, image_url, content } = req.body;
+
+  if (!date || !content) {
+    return res.status(400).json({ error: 'Date and content required' });
+  }
+
+  db.run(
+    "UPDATE site_posts SET title = ?, date = ?, image_url = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND site_id = ?",
+    [title || 'Обновленный пост', date, image_url || '', content, id, req.site.id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Post not found' });
+      }
+      res.json({ id, title: title || 'Обновленный пост', date, image_url: image_url || '', content });
+    }
+  );
+});
+
+// Delete post
+app.delete('/api/site/:siteSlug/admin/posts/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+
+  db.run("DELETE FROM site_posts WHERE id = ? AND site_id = ?", [id, req.site.id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    res.json({ message: 'Post deleted successfully' });
+  });
+});
+
+// Gallery admin endpoints
+app.get('/api/site/:siteSlug/admin/gallery', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  db.all("SELECT * FROM site_gallery WHERE site_id = ? ORDER BY created_at DESC", [req.site.id], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(rows);
+  });
+});
+
+app.post('/api/site/:siteSlug/admin/gallery', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { title, description, file_path, file_type, thumbnail_path } = req.body;
+
+  if (!title || !file_path || !file_type) {
+    return res.status(400).json({ error: 'Title, file_path and file_type required' });
+  }
+
+  db.run(
+    "INSERT INTO site_gallery (site_id, title, description, file_path, file_type, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?)",
+    [req.site.id, title, description || '', file_path, file_type, thumbnail_path || ''],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ id: this.lastID, message: 'Gallery item created successfully' });
+    }
+  );
+});
+
+app.put('/api/site/:siteSlug/admin/gallery/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+  const { title, description, file_path, file_type, thumbnail_path } = req.body;
+
+  if (!title || !file_path || !file_type) {
+    return res.status(400).json({ error: 'Title, file_path and file_type required' });
+  }
+
+  db.run(
+    "UPDATE site_gallery SET title = ?, description = ?, file_path = ?, file_type = ?, thumbnail_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND site_id = ?",
+    [title, description || '', file_path, file_type, thumbnail_path || '', id, req.site.id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ message: 'Gallery item updated successfully' });
+    }
+  );
+});
+
+app.delete('/api/site/:siteSlug/admin/gallery/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+
+  db.run("DELETE FROM site_gallery WHERE id = ? AND site_id = ?", [id, req.site.id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json({ message: 'Gallery item deleted successfully' });
+  });
+});
+
+// Music settings admin endpoints
+app.get('/api/site/:siteSlug/admin/music', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  db.all("SELECT * FROM site_music_settings WHERE site_id = ? ORDER BY page ASC", [req.site.id], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(rows);
+  });
+});
+
+app.put('/api/site/:siteSlug/admin/music/:page', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { page } = req.params;
+  const { music_file, autoplay, loop, volume } = req.body;
+
+  db.run(
+    "INSERT OR REPLACE INTO site_music_settings (site_id, page, music_file, autoplay, loop, volume, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+    [req.site.id, page, music_file || '', autoplay || 0, loop || 1, volume || 0.5],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ message: 'Music settings updated successfully' });
+    }
+  );
+});
+
+// Temporary messages admin endpoints
+app.get('/api/site/:siteSlug/admin/temporary-messages', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  db.all(
+    `SELECT *, 
+     datetime(show_from, '+' || duration_hours || ' hours') as show_until
+     FROM site_temporary_messages 
+     WHERE site_id = ?
+     ORDER BY show_from DESC`,
+    [req.site.id],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+app.post('/api/site/:siteSlug/admin/temporary-messages', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { title, content, show_from, duration_hours } = req.body;
+
+  if (!title || !content || !show_from || !duration_hours) {
+    return res.status(400).json({ error: 'Title, content, show_from and duration_hours required' });
+  }
+
+  db.run(
+    "INSERT INTO site_temporary_messages (site_id, title, content, show_from, duration_hours) VALUES (?, ?, ?, ?, ?)",
+    [req.site.id, title, content, show_from, duration_hours],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ id: this.lastID, message: 'Temporary message created successfully' });
+    }
+  );
+});
+
+app.put('/api/site/:siteSlug/admin/temporary-messages/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+  const { title, content, show_from, duration_hours, is_active } = req.body;
+
+  if (!title || !content || !show_from || !duration_hours) {
+    return res.status(400).json({ error: 'Title, content, show_from and duration_hours required' });
+  }
+
+  db.run(
+    "UPDATE site_temporary_messages SET title = ?, content = ?, show_from = ?, duration_hours = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND site_id = ?",
+    [title, content, show_from, duration_hours, is_active !== undefined ? is_active : 1, id, req.site.id],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json({ message: 'Temporary message updated successfully' });
+    }
+  );
+});
+
+app.delete('/api/site/:siteSlug/admin/temporary-messages/:id', authenticateToken, validateSite, (req, res) => {
+  if (req.site.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { id } = req.params;
+
+  db.run("DELETE FROM site_temporary_messages WHERE id = ? AND site_id = ?", [id, req.site.id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json({ message: 'Temporary message deleted successfully' });
+  });
+});
+
 // Update chat messages
 app.put('/api/site/:siteSlug/admin/chat-messages', authenticateToken, validateSite, (req, res) => {
   if (req.site.user_id !== req.user.id) {
@@ -584,7 +908,7 @@ app.get('/site/:siteSlug', (req, res) => {
     }
     
     // Serve the appropriate template based on template_type
-    const templateFile = site.template_type === 'love_site' ? 'index.html' : 'index.html';
+    const templateFile = site.template_type === 'love_site' ? 'index-multitenant.html' : 'index-multitenant.html';
     res.sendFile(path.join(__dirname, templateFile));
   });
 });
@@ -607,7 +931,11 @@ app.get('/site/:siteSlug/gallery', (req, res) => {
 
 // Serve admin panel
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  const siteSlug = req.query.site;
+  if (!siteSlug) {
+    return res.status(400).send('Site slug is required for admin access. Use /admin?site=YOUR_SITE_SLUG');
+  }
+  res.sendFile(path.join(__dirname, 'admin-multitenant.html'));
 });
 
 // Serve platform admin panel

@@ -942,24 +942,10 @@ function initNavigation() {
     });
 }
 
-// Update gallery link for multi-tenant sites
-function updateGalleryLink() {
-    const siteSlug = getSiteSlug();
-    if (siteSlug) {
-        const galleryLink = document.getElementById('gallery-link');
-        if (galleryLink) {
-            galleryLink.href = `/site/${siteSlug}/gallery`;
-        }
-    }
-}
-
 // Load site settings and temporary messages when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    updateGalleryLink();
-    loadSiteSettings();
-    loadMusicSettings();
-    loadAllMessages();
-});
+loadSiteSettings();
+loadMusicSettings();
+loadAllMessages();
 
 // Make toggleGift global for onclick handlers
 window.toggleGift = toggleGift;

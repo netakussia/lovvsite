@@ -339,12 +339,18 @@
                     <form id="postForm">
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="postDate">Дата (ДД.ММ.ГГГГ):</label>
-                                <input type="text" id="postDate" name="date" placeholder="01.01.2025" required>
+                                <label for="postTitle">Заголовок:</label>
+                                <input type="text" id="postTitle" name="title" placeholder="Название момента" required>
                             </div>
-                            <div class="form-group">
-                                <label for="postImage">URL изображения:</label>
-                                <input type="text" id="postImage" name="image_url" placeholder="images/photo.jpg">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="postDate">Дата (ДД.ММ.ГГГГ):</label>
+                                    <input type="text" id="postDate" name="date" placeholder="01.01.2025" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="postImage">URL изображения:</label>
+                                    <input type="text" id="postImage" name="image_url" placeholder="images/photo.jpg">
+                                </div>
                             </div>
                         </div>
                         <div class="form-group">
@@ -509,7 +515,19 @@
     </div>
 
     <script>
-        let authToken = localStorage.getItem('authToken');
+        // Получаем siteSlug из URL параметров
+        function getSiteSlug() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('site');
+        }
+
+        // Базовый URL для API с учетом сайта
+        function getApiBaseUrl() {
+            const siteSlug = getSiteSlug();
+            return siteSlug ? `/api/site/${siteSlug}` : '/api';
+        }
+
+        let authToken = localStorage.getItem('platformAuthToken');
         let currentEditingId = null;
 
         // Check if user is already logged in
@@ -519,7 +537,7 @@
                 if (isValid) {
                     showAdminContent();
                 } else {
-                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('platformAuthToken');
                     authToken = null;
                     showLoginForm();
                 }
@@ -531,7 +549,7 @@
         // Verify token validity
         async function verifyToken(token) {
             try {
-                const response = await fetch('/api/admin/secret-posts', {
+                const response = await fetch('/api/platform/sites', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -545,10 +563,10 @@
         // Handle authentication errors
         function handleAuthError(response) {
             if (response.status === 403 || response.status === 401) {
-                localStorage.removeItem('authToken');
+                localStorage.removeItem('platformAuthToken');
                 authToken = null;
                 showLoginForm();
-                showError('authError', 'Сессия истекла. Пожалуйста, войдите заново.');
+                showError('loginError', 'Сессия истекла. Пожалуйста, войдите заново.');
                 return true;
             }
             return false;
@@ -562,7 +580,7 @@
             const password = document.getElementById('password').value;
             
             try {
-                const response = await fetch('/api/admin/login', {
+                const response = await fetch('/api/platform/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -574,7 +592,7 @@
                 
                 if (response.ok) {
                     authToken = data.token;
-                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('platformAuthToken', authToken);
                     showAdminContent();
                 } else {
                     showError('loginError', data.error || 'Ошибка входа');
@@ -587,7 +605,7 @@
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', () => {
             authToken = null;
-            localStorage.removeItem('authToken');
+            localStorage.removeItem('platformAuthToken');
             showLoginForm();
         });
 
@@ -629,7 +647,7 @@
             };
             
             try {
-                const url = currentEditingId ? `/api/admin/secret-posts/${currentEditingId}` : '/api/admin/secret-posts';
+                const url = currentEditingId ? `${getApiBaseUrl()}/admin/secret-posts/${currentEditingId}` : `${getApiBaseUrl()}/admin/secret-posts`;
                 const method = currentEditingId ? 'PUT' : 'POST';
                 
                 const response = await fetch(url, {
@@ -661,13 +679,14 @@
             
             const formData = new FormData(e.target);
             const data = {
+                title: formData.get('title'),
                 date: formData.get('date'),
                 image_url: formData.get('image_url'),
                 content: formData.get('content')
             };
             
             try {
-                const url = currentEditingId ? `/api/admin/posts/${currentEditingId}` : '/api/admin/posts';
+                const url = currentEditingId ? `${getApiBaseUrl()}/admin/posts/${currentEditingId}` : `${getApiBaseUrl()}/admin/posts`;
                 const method = currentEditingId ? 'PUT' : 'POST';
                 
                 const response = await fetch(url, {
@@ -683,31 +702,6 @@
                     e.target.reset();
                     currentEditingId = null;
                     loadPosts();
-                    
-                    // Auto-add to gallery if image is provided
-                    if (data.image_url) {
-                        const galleryData = {
-                            title: `Пост от ${data.date}`,
-                            description: data.content,
-                            file_path: data.image_url,
-                            file_type: 'image',
-                            thumbnail_path: data.image_url
-                        };
-                        
-                        try {
-                            await fetch('/api/admin/gallery', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${authToken}`
-                                },
-                                body: JSON.stringify(galleryData)
-                            });
-                        } catch (galleryError) {
-                            console.log('Gallery auto-add failed:', galleryError);
-                        }
-                    }
-                    
                     showSuccess('Пост сохранен!');
                 } else {
                     const error = await response.json();
@@ -732,7 +726,7 @@
             };
             
             try {
-                const url = currentEditingId ? `/api/admin/gallery/${currentEditingId}` : '/api/admin/gallery';
+                const url = currentEditingId ? `${getApiBaseUrl()}/admin/gallery/${currentEditingId}` : `${getApiBaseUrl()}/admin/gallery`;
                 const method = currentEditingId ? 'PUT' : 'POST';
                 
                 const response = await fetch(url, {
@@ -771,7 +765,7 @@
             };
             
             try {
-                const url = currentEditingId ? `/api/admin/temporary-messages/${currentEditingId}` : '/api/admin/temporary-messages';
+                const url = currentEditingId ? `${getApiBaseUrl()}/admin/temporary-messages/${currentEditingId}` : `${getApiBaseUrl()}/admin/temporary-messages`;
                 const method = currentEditingId ? 'PUT' : 'POST';
                 
                 const response = await fetch(url, {
@@ -808,7 +802,7 @@
             const messages = Array.from(document.querySelectorAll('#chatMessagesContainer input')).map(input => input.value).filter(msg => msg.trim());
             
             try {
-                const response = await fetch('/api/admin/chat-messages', {
+                const response = await fetch(`${getApiBaseUrl()}/admin/chat-messages`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -842,7 +836,7 @@
             };
             
             try {
-                const response = await fetch(`/api/admin/music/${data.page}`, {
+                const response = await fetch(`${getApiBaseUrl()}/admin/music/${data.page}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -874,7 +868,7 @@
             };
             
             try {
-                const response = await fetch('/api/admin/settings', {
+                const response = await fetch(`${getApiBaseUrl()}/admin/settings`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -934,7 +928,7 @@
 
         async function loadSecretPosts() {
             try {
-                const response = await fetch('/api/admin/secret-posts', {
+                const response = await fetch(`${getApiBaseUrl()}/admin/secret-posts`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
@@ -972,7 +966,7 @@
 
         async function loadPosts() {
             try {
-                const response = await fetch('/api/posts');
+                const response = await fetch(`${getApiBaseUrl()}/posts`);
                 const posts = await response.json();
                 
                 const container = document.getElementById('postsList');
@@ -983,7 +977,7 @@
                     div.className = 'item';
                     div.innerHTML = `
                         <div class="item-header">
-                            <div class="item-title">${post.date}</div>
+                            <div class="item-title">${post.title} - ${post.date}</div>
                             <div class="item-actions">
                                 <button class="btn btn-small" onclick="editPost(${post.id})">Редактировать</button>
                                 <button class="btn btn-small btn-danger" onclick="deletePost(${post.id})">Удалить</button>
@@ -1002,7 +996,7 @@
 
         async function loadGalleryItems() {
             try {
-                const response = await fetch('/api/admin/gallery', {
+                const response = await fetch(`${getApiBaseUrl()}/admin/gallery`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
@@ -1037,7 +1031,7 @@
 
         async function loadTemporaryMessages() {
             try {
-                const response = await fetch('/api/admin/temporary-messages', {
+                const response = await fetch(`${getApiBaseUrl()}/admin/temporary-messages`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
@@ -1095,7 +1089,7 @@
 
         async function loadChatMessages() {
             try {
-                const response = await fetch('/api/chat-messages');
+                const response = await fetch(`${getApiBaseUrl()}/chat-messages`);
                 const messages = await response.json();
                 
                 const container = document.getElementById('chatMessagesContainer');
@@ -1111,14 +1105,14 @@
 
         async function loadSettings() {
             try {
-                const response = await fetch('/api/settings');
+                const response = await fetch(`${getApiBaseUrl()}/settings`);
                 const settings = await response.json();
                 
                 document.getElementById('siteTitle').value = settings.site_title || '';
                 document.getElementById('siteSubtitle').value = settings.site_subtitle || '';
                 
                 // Load music settings
-                const musicResponse = await fetch('/api/admin/music', {
+                const musicResponse = await fetch(`${getApiBaseUrl()}/admin/music`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
@@ -1162,202 +1156,6 @@
             button.parentElement.remove();
         }
 
-        async function editSecretPost(id) {
-            try {
-                const response = await fetch('/api/admin/secret-posts', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                const posts = await response.json();
-                const post = posts.find(p => p.id === id);
-                
-                if (post) {
-                    document.getElementById('secretTitle').value = post.title;
-                    document.getElementById('secretPassword').value = post.password;
-                    document.getElementById('secretContent').value = post.content;
-                    currentEditingId = id;
-                    document.getElementById('secretPostForm').scrollIntoView();
-                }
-            } catch (error) {
-                showError('secretError', 'Ошибка загрузки данных');
-            }
-        }
-
-        async function editPost(id) {
-            try {
-                const response = await fetch('/api/posts');
-                const posts = await response.json();
-                const post = posts.find(p => p.id === id);
-                
-                if (post) {
-                    document.getElementById('postDate').value = post.date;
-                    document.getElementById('postImage').value = post.image_url || '';
-                    document.getElementById('postContent').value = post.content;
-                    currentEditingId = id;
-                    document.getElementById('postForm').scrollIntoView();
-                }
-            } catch (error) {
-                showError('postError', 'Ошибка загрузки данных');
-            }
-        }
-
-        async function deleteSecretPost(id) {
-            if (confirm('Вы уверены, что хотите удалить этот секретный пост?')) {
-                try {
-                    const response = await fetch(`/api/admin/secret-posts/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        loadSecretPosts();
-                        showSuccess('Секретный пост удален!');
-                    } else {
-                        const error = await response.json();
-                        showError('secretError', error.error || 'Ошибка удаления');
-                    }
-                } catch (error) {
-                    showError('secretError', 'Ошибка соединения с сервером');
-                }
-            }
-        }
-
-        async function deletePost(id) {
-            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
-                try {
-                    const response = await fetch(`/api/admin/posts/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        loadPosts();
-                        showSuccess('Пост удален!');
-                    } else {
-                        const error = await response.json();
-                        showError('postError', error.error || 'Ошибка удаления');
-                    }
-                } catch (error) {
-                    showError('postError', 'Ошибка соединения с сервером');
-                }
-            }
-        }
-
-        // Gallery functions
-        async function editGalleryItem(id) {
-            try {
-                const response = await fetch('/api/admin/gallery', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                const items = await response.json();
-                const item = items.find(i => i.id === id);
-                
-                if (item) {
-                    document.getElementById('galleryTitle').value = item.title;
-                    document.getElementById('galleryDescription').value = item.description || '';
-                    document.getElementById('galleryFilePath').value = item.file_path;
-                    document.getElementById('galleryType').value = item.file_type;
-                    document.getElementById('galleryThumbnail').value = item.thumbnail_path || '';
-                    currentEditingId = id;
-                    document.getElementById('galleryForm').scrollIntoView();
-                }
-            } catch (error) {
-                showError('galleryError', 'Ошибка загрузки данных');
-            }
-        }
-
-        async function deleteGalleryItem(id) {
-            if (confirm('Вы уверены, что хотите удалить этот элемент галереи?')) {
-                try {
-                    const response = await fetch(`/api/admin/gallery/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        loadGalleryItems();
-                        showSuccess('Элемент галереи удален!');
-                    } else {
-                        const error = await response.json();
-                        showError('galleryError', error.error || 'Ошибка удаления');
-                    }
-                } catch (error) {
-                    showError('galleryError', 'Ошибка соединения с сервером');
-                }
-            }
-        }
-
-        // Temporary message functions
-        async function editTemporaryMessage(id) {
-            try {
-                const response = await fetch('/api/admin/temporary-messages', {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-                
-                if (handleAuthError(response)) {
-                    return;
-                }
-                
-                const messages = await response.json();
-                const message = messages.find(m => m.id === id);
-                
-                if (message) {
-                    document.getElementById('temporaryTitle').value = message.title;
-                    document.getElementById('temporaryContent').value = message.content;
-                    
-                    // Convert datetime to local format for input
-                    const showFrom = new Date(message.show_from);
-                    
-                    document.getElementById('temporaryShowFrom').value = 
-                        showFrom.toISOString().slice(0, 16);
-                    document.getElementById('temporaryDuration').value = message.duration_hours;
-                    
-                    currentEditingId = id;
-                    document.getElementById('temporaryForm').scrollIntoView();
-                }
-            } catch (error) {
-                showError('temporaryError', 'Ошибка загрузки данных');
-            }
-        }
-
-        async function deleteTemporaryMessage(id) {
-            if (confirm('Вы уверены, что хотите удалить это временное сообщение?')) {
-                try {
-                    const response = await fetch(`/api/admin/temporary-messages/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`
-                        }
-                    });
-                    
-                    if (handleAuthError(response)) {
-                        return;
-                    }
-                    
-                    if (response.ok) {
-                        loadTemporaryMessages();
-                        showSuccess('Временное сообщение удалено!');
-                    } else {
-                        const error = await response.json();
-                        showError('temporaryError', error.error || 'Ошибка удаления');
-                    }
-                } catch (error) {
-                    showError('temporaryError', 'Ошибка соединения с сервером');
-                }
-            }
-        }
-
         // Make functions global for onclick handlers
         window.editSecretPost = editSecretPost;
         window.editPost = editPost;
@@ -1368,6 +1166,47 @@
         window.editTemporaryMessage = editTemporaryMessage;
         window.deleteTemporaryMessage = deleteTemporaryMessage;
         window.removeMessageInput = removeMessageInput;
+
+        // Placeholder functions for edit/delete operations
+        function editSecretPost(id) {
+            console.log('Edit secret post:', id);
+            // Implementation needed
+        }
+
+        function editPost(id) {
+            console.log('Edit post:', id);
+            // Implementation needed
+        }
+
+        function deleteSecretPost(id) {
+            console.log('Delete secret post:', id);
+            // Implementation needed
+        }
+
+        function deletePost(id) {
+            console.log('Delete post:', id);
+            // Implementation needed
+        }
+
+        function editGalleryItem(id) {
+            console.log('Edit gallery item:', id);
+            // Implementation needed
+        }
+
+        function deleteGalleryItem(id) {
+            console.log('Delete gallery item:', id);
+            // Implementation needed
+        }
+
+        function editTemporaryMessage(id) {
+            console.log('Edit temporary message:', id);
+            // Implementation needed
+        }
+
+        function deleteTemporaryMessage(id) {
+            console.log('Delete temporary message:', id);
+            // Implementation needed
+        }
     </script>
 </body>
 </html>
